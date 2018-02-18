@@ -12,6 +12,9 @@ def get_onion_mapping(client, NAMESPACE):
     m = {}
 
     for pod in l.items:
+        if not pod.metadata.annotations:
+            continue
+
         if INSTANCE_ANNOT not in pod.metadata.annotations:
             continue
 
