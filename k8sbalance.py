@@ -22,9 +22,9 @@ def get_onion_mapping(client, NAMESPACE):
         instance = pod.metadata.annotations[INSTANCE_ANNOT]
 
         if service not in m:
-            m[service] = []
+            m[service] = set()
 
-        m[service].append(instance)
+        m[service].add(instance)
 
     return m
 
@@ -65,14 +65,15 @@ def kill(process):
 
 
 if __name__ == '__main__':
-    import os
+    import itertools, os
     from kubernetes import client, config, watch
     NAMESPACE = os.environ['POD_NAMESPACE']
 
     config.incluster_config.load_incluster_config()
     v1 = client.CoreV1Api()
 
-    ob = start_onionbalance(get_onion_mapping(v1, NAMESPACE))
+    onionmap     = get_onion_mapping(v1, NAMESPACE)
+    onionbalance = start_onionbalance(onionmap)
 
     stream = watch.Watch().stream(v1.list_namespaced_pod,
                                   NAMESPACE,
@@ -80,5 +81,20 @@ if __name__ == '__main__':
     )
 
     for event in stream:
-        kill(ob)
-        ob = start_onionbalance(get_onion_mapping(v1, NAMESPACE))
+        newmap = get_onion_mapping(v1, NAMESPACE)
+        if newmap == onionmap:
+            continue
+
+        print('Updating onionbalance config:')
+        for host in set(itertools.chain(newmap.keys(), onionmap.keys())):
+            if newmap[host] == onionmap[host]:
+                continue
+            print('  ', host)
+
+            print('    Adding:', newmap[host] - onionmap[host])
+            print('    Removing:', onionmap[host] - newmap[host])
+            print('    Keeping:', onionmap[host] & newmap[host])
+
+        onionmap = newmap
+        kill(onionbalance)
+        onionbalance = start_onionbalance(onionmap)
