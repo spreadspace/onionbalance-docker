@@ -85,7 +85,7 @@ if __name__ == '__main__':
         if newmap == onionmap:
             continue
 
-        sys.stderr.write('Updating onionbalance config:')
+        sys.stderr.write('Updating onionbalance config:\n')
         for host in set(itertools.chain(newmap.keys(), onionmap.keys())):
             if host in newmap and host in onionmap and newmap[host] == onionmap[host]:
                 continue
