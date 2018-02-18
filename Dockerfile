@@ -6,7 +6,7 @@ RUN set -x \
     && echo 'APT::Install-Suggests "false";' >> /etc/apt/apt.conf.d/02no-recommends \
     && apt-get update -q \
     && apt-get install -y -q -t stretch-backports tor \
-    && apt-get install -y -q python3-pip \
+    && apt-get install -y -q python3-pip python3-setuptools \
     && pip3 install kubernetes onionbalance \
     && apt-get upgrade -y -q \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
