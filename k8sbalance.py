@@ -5,6 +5,7 @@ INSTANCE_ANNOT='spreadspace.org/onion-instance'
 REFRESH_INTERVAL=120
 SECRETS_PATH='/var/run/secrets/spreadspace.org/onionbalance'
 ONIONBALANCE_CONFIG='/tmp/onionbalance.yml'
+ONIONBALANCE_CONTROL='/tmp/onionbalance.control'
 
 def get_onion_mapping(client, NAMESPACE):
     l = client.list_namespaced_pod(NAMESPACE, label_selector=SERVICE_LABEL)
@@ -28,6 +29,7 @@ def get_onion_mapping(client, NAMESPACE):
 def onionbalance_config(mapping):
     import json, os.path
     return json.dumps({
+        'STATUS_SOCKET_LOCATION': ONIONBALANCE_CONTROL,
         'REFRESH_INTERVAL': REFRESH_INTERVAL,
         'services': [
             { 'key': os.path.join(SECRETS_PATH, address),
