@@ -35,11 +35,13 @@ def onionbalance_config(mapping):
 
 
 def start_onionbalance(mapping):
-    from subprocess import Popen
+    from subprocess import Popen, PIPE
 
     with open(ONIONBALANCE_CONFIG, 'w') as fd:
         fd.write(onionbalance_config(mapping))
-    return Popen(['onionbalance', '-c', ONIONBALANCE_CONFIG])
+    return Popen(['onionbalance', '-c', ONIONBALANCE_CONFIG],
+                 stdout=PIPE, stderr=PIPE
+    )
 
 
 def kill(process):
