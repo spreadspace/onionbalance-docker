@@ -87,8 +87,9 @@ if __name__ == '__main__':
 
         print('Updating onionbalance config:')
         for host in set(itertools.chain(newmap.keys(), onionmap.keys())):
-            if newmap[host] == onionmap[host]:
+            if host in newmap and host in onionmap and newmap[host] == onionmap[host]:
                 continue
+
             print('  ', host)
 
             print('    Adding:', newmap[host] - onionmap[host])
