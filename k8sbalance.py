@@ -3,7 +3,7 @@
 SERVICE_LABEL='spreadspace.org/onion-service'
 INSTANCE_ANNOT='spreadspace.org/onion-instance'
 REFRESH_INTERVAL=120
-SECRETS_PATH='/var/run/secrets/onionbalance'
+SECRETS_PATH='/var/run/secrets/spreadspace.org/onionbalance'
 ONIONBALANCE_CONFIG='/tmp/onionbalance.yml'
 
 def get_onion_mapping(client, NAMESPACE):
