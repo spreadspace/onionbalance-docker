@@ -10,7 +10,10 @@ def get_onion_mapping(client, NAMESPACE):
     l = client.list_namespaced_pod(NAMESPACE, label_selector=SERVICE_LABEL)
     m = {}
 
-    for pod in l:
+    for pod in l.items:
+        if INSTANCE_ANNOT not in pod.metadata.annotations:
+            continue
+
         service = pod.metadata.labels[SERVICE_LABEL]
         instance = pod.metadata.annotations[INSTANCE_ANNOT]
 
@@ -28,7 +31,8 @@ def onionbalance_config(mapping):
         'REFRESH_INTERVAL': REFRESH_INTERVAL,
         'services': [
             { 'key': os.path.join(SECRETS_PATH, address),
-              'instances': map(lambda s: {'address': s}, instances) }
+              'instances': list(map(lambda s: {'address': s}, instances))
+            }
             for address, instances in mapping.items()
         ]
     })
