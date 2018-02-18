@@ -17,10 +17,6 @@ env:
     - secure: "RL2nikOzanOA4Y4DAeEurJBYwRto/SumvqT7/M44r/09Mi+lo2fs6/fVuzaiwQWTUNa4735HvDOou5J1XTushE8RcYj1ifIyLTNuReuhX3LxoaxbCk3+o/9oHtmpAEKa2p2aSGcwdlCKr6LdwqJTVqin+VhYIpL3rNCNksX72kBemHB4y89g7BBYyuMSflY+1aZwgHO1NyvV5Sjx2+II1D/ij3fPcu+awhU/AhR2ouO4UpT0UHQ3GrLRzSbOAE4hZbCcxd0Cj35B4iRTLgJDBbxKzpV3XUf8klsEWBXsMFsOgFKmxNSJiscdaijMS4nBsRjZArc89MU5a1NvTbxokZD50BxakoryZsSoazvtpYnH99mDJ0KN9HauYXaVB9M1BfmxISqMicdyu5ET7faB1eJ4qIJCyWvo0vQx7apZi0N+dykeu6MRKVJapwqT8UlW2U+hGMntXmCq2RYaKBkAVOtc7fTBvArA2V84saF0d22NKioiXAemXMIvw2ceQ9o3t4iXwnIwBJCE4oCktzhLEDocfidh02CpdGv0RMZe4JDlwVNj/y3scc5OKIEhF9nikVgusqNYKoVYv0XBE+SBf9EHSW87iLS4SNenM3wGWmgmkMMMDtf4v7cmdYmY3zyljm2VGKtAzqErCfyZ/G9PnBCzHcHd7dSwxFwrWoJ2rMA="
     - DOCKER_REPO=spreadspace/onionbalance
 
-before_script:
-  ### pull current images to potentially use docker build cache
-  - docker pull $DOCKER_REPO:latest
-
 script:
   ### build the new images
   - docker build -t $DOCKER_REPO:$TRAVIS_BRANCH-$TRAVIS_BUILD_NUMBER .
