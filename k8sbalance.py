@@ -65,7 +65,7 @@ def kill(process):
 
 
 if __name__ == '__main__':
-    import itertools, os
+    import itertools, os, sys
     from kubernetes import client, config, watch
     NAMESPACE = os.environ['POD_NAMESPACE']
 
@@ -85,16 +85,17 @@ if __name__ == '__main__':
         if newmap == onionmap:
             continue
 
-        print('Updating onionbalance config:')
+        sys.stderr.write('Updating onionbalance config:')
         for host in set(itertools.chain(newmap.keys(), onionmap.keys())):
             if host in newmap and host in onionmap and newmap[host] == onionmap[host]:
                 continue
 
-            print('  ', host)
+            sys.stderr.write('  %s\n' % host)
 
-            print('    Adding:', newmap[host] - onionmap[host])
-            print('    Removing:', onionmap[host] - newmap[host])
-            print('    Keeping:', onionmap[host] & newmap[host])
+            sys.stderr.write('    Adding: %s\n' % (newmap[host] - onionmap[host]))
+            sys.stderr.write('    Removing: %s\n' % (onionmap[host] - newmap[host]))
+            sys.stderr.write('    Keeping: %s\n' % (onionmap[host] & newmap[host]))
+            sys.stderr.flush()
 
         onionmap = newmap
         kill(onionbalance)
