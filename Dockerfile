@@ -21,6 +21,7 @@ RUN adduser --home /srv --no-create-home --system --uid 998 --group app
 COPY "run-tor.sh" "/run-tor.sh"
 COPY "torrc"      "/torrc"
 COPY "k8sbalance.py"  "/k8sbalance.py"
+COPY "run-balance.sh" "/run-balance.sh"
 
 ENV TOR_DIR /var/lib/tor
 VOLUME ["${TOR_DIR}"]
