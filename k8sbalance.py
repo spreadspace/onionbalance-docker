@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+"""Script to run and automatically configure onionbalance under Kubernetes."""
 
 import sys
 
@@ -11,6 +12,7 @@ ONIONBALANCE_CONTROL = "/tmp/onionbalance.control"
 
 
 def get_onion_mapping(client, namespace):
+    """Generate an onion service mapping from Kubernetes metadata."""
     pods = client.list_namespaced_pod(namespace, label_selector=SERVICE_LABEL)
     mapping = {}
 
@@ -33,6 +35,7 @@ def get_onion_mapping(client, namespace):
 
 
 def onionbalance_config(mapping):
+    """Generate an onionbalance configuration from a service mapping."""
     import json
     import os.path
 
@@ -52,6 +55,7 @@ def onionbalance_config(mapping):
 
 
 def start_onionbalance(mapping):
+    """Start an onionbalance process."""
     from subprocess import Popen
 
     with open(ONIONBALANCE_CONFIG, "w") as config_file:
@@ -61,6 +65,7 @@ def start_onionbalance(mapping):
 
 
 def kill(process):
+    """Gracefully terminate a process."""
     from subprocess import TimeoutExpired
 
     print("Sending SIGTERM to onionbalance")
@@ -75,6 +80,7 @@ def kill(process):
 
 
 def log_changes(oldmap, newmap, output=sys.stderr):
+    """Log the changes between two onion services maps."""
     import itertools
 
     output.write("Updating onionbalance config:\n")
@@ -89,7 +95,7 @@ def log_changes(oldmap, newmap, output=sys.stderr):
         output.flush()
 
 
-def main():
+def _main():
     import os
     from kubernetes import client, config, watch
 
@@ -117,4 +123,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    _main()

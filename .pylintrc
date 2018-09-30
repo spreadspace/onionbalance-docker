@@ -39,4 +39,4 @@ output-format=colorized
 # Spelling dictionary name. Available dictionaries: en (aspell), en_AU
 # (aspell), en_CA (aspell), en_GB (aspell), en_US (aspell).
 spelling-dict=en_US
-#spelling-private-dict-file=.spelling
+spelling-private-dict-file=.spelling
