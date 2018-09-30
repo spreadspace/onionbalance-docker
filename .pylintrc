@@ -1,0 +1,42 @@
+[MASTER]
+# Use multiple processes to speed up Pylint.
+jobs=1
+
+# List of plugins (as comma separated values of python modules names) to load,
+# usually to register additional checkers.
+load-plugins=pylint.extensions.check_elif,
+             pylint.extensions.comparetozero,
+             pylint.extensions.emptystring,
+             pylint.extensions.overlapping_exceptions,
+             pylint.extensions.redefined_variable_type,
+
+
+[MESSAGES CONTROL]
+
+# Enable the message, report, category or checker with the given id(s). You can
+# either give multiple identifier separated by comma (,) or put this option
+# multiple time (only on the command line, not in the configuration file where
+# it should appear only once).
+enable=all
+
+# Disable the message, report, category or checker with the given id(s).
+disable=missing-docstring,
+        bad-whitespace,
+        bad-continuation,
+        no-else-return
+
+
+[REPORTS]
+
+# Set the output format. Available formats are text, parseable, colorized, json
+# and msvs (visual studio).You can also give a reporter class, eg
+# mypackage.mymodule.MyReporterClass.
+output-format=colorized
+
+
+[SPELLING]
+
+# Spelling dictionary name. Available dictionaries: en (aspell), en_AU
+# (aspell), en_CA (aspell), en_GB (aspell), en_US (aspell).
+spelling-dict=en_US
+#spelling-private-dict-file=.spelling
