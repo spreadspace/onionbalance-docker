@@ -54,8 +54,9 @@ def onionbalance_config(mapping):
 def start_onionbalance(mapping):
     from subprocess import Popen
 
-    with open(ONIONBALANCE_CONFIG, "w") as fd:
-        fd.write(onionbalance_config(mapping))
+    with open(ONIONBALANCE_CONFIG, "w") as config_file:
+        config_file.write(onionbalance_config(mapping))
+
     return Popen(["onionbalance", "-c", ONIONBALANCE_CONFIG])
 
 
@@ -74,6 +75,8 @@ def kill(process):
 
 
 def log_changes(oldmap, newmap, output=sys.stderr):
+    import itertools
+
     output.write("Updating onionbalance config:\n")
     for host in set(itertools.chain(newmap.keys(), oldmap.keys())):
         if host in newmap and host in oldmap and newmap[host] == oldmap[host]:
@@ -86,25 +89,24 @@ def log_changes(oldmap, newmap, output=sys.stderr):
         output.flush()
 
 
-if __name__ == "__main__":
-    import itertools
+def main():
     import os
     from kubernetes import client, config, watch
 
-    NAMESPACE = os.environ["POD_NAMESPACE"]
+    namespace = os.environ["POD_NAMESPACE"]
 
     config.incluster_config.load_incluster_config()
-    v1 = client.CoreV1Api()
+    v1_client = client.CoreV1Api()
 
-    onionmap = get_onion_mapping(v1, NAMESPACE)
+    onionmap = get_onion_mapping(v1_client, namespace)
     onionbalance = start_onionbalance(onionmap)
 
     stream = watch.Watch().stream(
-        v1.list_namespaced_pod, NAMESPACE, label_selector=SERVICE_LABEL
+        v1_client.list_namespaced_pod, namespace, label_selector=SERVICE_LABEL
     )
 
     for _ in stream:
-        newmap = get_onion_mapping(v1, NAMESPACE)
+        newmap = get_onion_mapping(v1_client, namespace)
         if newmap == onionmap:
             continue
 
@@ -112,3 +114,7 @@ if __name__ == "__main__":
         onionmap = newmap
         kill(onionbalance)
         onionbalance = start_onionbalance(onionmap)
+
+
+if __name__ == "__main__":
+    main()
