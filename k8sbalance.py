@@ -36,7 +36,7 @@ def onionbalance_config(mapping):
         'REFRESH_INTERVAL': REFRESH_INTERVAL,
         'services': [
             { 'key': os.path.join(SECRETS_PATH, address),
-              'instances': list(map(lambda s: {'address': s}, instances))
+              'instances': [ {'address': s} for s in instances ]
             }
             for address, instances in mapping.items()
         ]
