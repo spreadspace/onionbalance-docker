@@ -7,6 +7,7 @@ SECRETS_PATH='/var/run/secrets/spreadspace.org/onionbalance'
 ONIONBALANCE_CONFIG='/tmp/onionbalance.yml'
 ONIONBALANCE_CONTROL='/tmp/onionbalance.control'
 
+
 def get_onion_mapping(client, NAMESPACE):
     l = client.list_namespaced_pod(NAMESPACE, label_selector=SERVICE_LABEL)
     m = {}
@@ -64,6 +65,19 @@ def kill(process):
         process.wait(timeout=60)
 
 
+def log_changes(oldmap, newmap, output=sys.stderr):
+    output.write('Updating onionbalance config:\n')
+    for host in set(itertools.chain(newmap.keys(), oldmap.keys())):
+        if host in newmap and host in oldmap and newmap[host] == oldmap[host]:
+            continue
+
+        output.write('  %s\n' % host)
+        output.write('    Adding: %s\n' % (newmap[host] - oldmap[host]))
+        output.write('    Removing: %s\n' % (oldmap[host] - newmap[host]))
+        output.write('    Keeping: %s\n' % (oldmap[host] & newmap[host]))
+        output.flush()
+
+
 if __name__ == '__main__':
     import itertools, os, sys
     from kubernetes import client, config, watch
@@ -85,18 +99,7 @@ if __name__ == '__main__':
         if newmap == onionmap:
             continue
 
-        sys.stderr.write('Updating onionbalance config:\n')
-        for host in set(itertools.chain(newmap.keys(), onionmap.keys())):
-            if host in newmap and host in onionmap and newmap[host] == onionmap[host]:
-                continue
-
-            sys.stderr.write('  %s\n' % host)
-
-            sys.stderr.write('    Adding: %s\n' % (newmap[host] - onionmap[host]))
-            sys.stderr.write('    Removing: %s\n' % (onionmap[host] - newmap[host]))
-            sys.stderr.write('    Keeping: %s\n' % (onionmap[host] & newmap[host]))
-            sys.stderr.flush()
-
+        log_changes(onionmap, newmap)
         onionmap = newmap
         kill(onionbalance)
         onionbalance = start_onionbalance(onionmap)
