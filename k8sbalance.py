@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 
+import sys
+
 SERVICE_LABEL='spreadspace.org/onion-service'
 INSTANCE_ANNOT='spreadspace.org/onion-instance'
 REFRESH_INTERVAL=120
 SECRETS_PATH='/var/run/secrets/spreadspace.org/onionbalance'
 ONIONBALANCE_CONFIG='/tmp/onionbalance.yml'
 ONIONBALANCE_CONTROL='/tmp/onionbalance.control'
-
 
 def get_onion_mapping(client, NAMESPACE):
     l = client.list_namespaced_pod(NAMESPACE, label_selector=SERVICE_LABEL)
@@ -79,7 +80,7 @@ def log_changes(oldmap, newmap, output=sys.stderr):
 
 
 if __name__ == '__main__':
-    import itertools, os, sys
+    import itertools, os
     from kubernetes import client, config, watch
     NAMESPACE = os.environ['POD_NAMESPACE']
 
