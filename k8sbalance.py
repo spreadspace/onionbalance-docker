@@ -10,11 +10,11 @@ ONIONBALANCE_CONFIG = "/tmp/onionbalance.yml"
 ONIONBALANCE_CONTROL = "/tmp/onionbalance.control"
 
 
-def get_onion_mapping(client, NAMESPACE):
-    l = client.list_namespaced_pod(NAMESPACE, label_selector=SERVICE_LABEL)
-    m = {}
+def get_onion_mapping(client, namespace):
+    pods = client.list_namespaced_pod(namespace, label_selector=SERVICE_LABEL)
+    mapping = {}
 
-    for pod in l.items:
+    for pod in pods.items:
         if not pod.metadata.annotations:
             continue
 
@@ -24,16 +24,17 @@ def get_onion_mapping(client, NAMESPACE):
         service = pod.metadata.labels[SERVICE_LABEL]
         instance = pod.metadata.annotations[INSTANCE_ANNOT]
 
-        if service not in m:
-            m[service] = set()
+        if service not in mapping:
+            mapping[service] = set()
 
-        m[service].add(instance)
+        mapping[service].add(instance)
 
-    return m
+    return mapping
 
 
 def onionbalance_config(mapping):
-    import json, os.path
+    import json
+    import os.path
 
     return json.dumps(
         {
@@ -86,7 +87,8 @@ def log_changes(oldmap, newmap, output=sys.stderr):
 
 
 if __name__ == "__main__":
-    import itertools, os
+    import itertools
+    import os
     from kubernetes import client, config, watch
 
     NAMESPACE = os.environ["POD_NAMESPACE"]
@@ -101,7 +103,7 @@ if __name__ == "__main__":
         v1.list_namespaced_pod, NAMESPACE, label_selector=SERVICE_LABEL
     )
 
-    for event in stream:
+    for _ in stream:
         newmap = get_onion_mapping(v1, NAMESPACE)
         if newmap == onionmap:
             continue
