@@ -1,17 +1,22 @@
 #!/usr/bin/env python3
+"""Script to run and automatically configure onionbalance under Kubernetes."""
 
-SERVICE_LABEL='spreadspace.org/onion-service'
-INSTANCE_ANNOT='spreadspace.org/onion-instance'
-REFRESH_INTERVAL=120
-SECRETS_PATH='/var/run/secrets/spreadspace.org/onionbalance'
-ONIONBALANCE_CONFIG='/tmp/onionbalance.yml'
-ONIONBALANCE_CONTROL='/tmp/onionbalance.control'
+import sys
 
-def get_onion_mapping(client, NAMESPACE):
-    l = client.list_namespaced_pod(NAMESPACE, label_selector=SERVICE_LABEL)
-    m = {}
+SERVICE_LABEL = "spreadspace.org/onion-service"
+INSTANCE_ANNOT = "spreadspace.org/onion-instance"
+REFRESH_INTERVAL = 120
+SECRETS_PATH = "/var/run/secrets/spreadspace.org/onionbalance"
+ONIONBALANCE_CONFIG = "/tmp/onionbalance.yml"
+ONIONBALANCE_CONTROL = "/tmp/onionbalance.control"
 
-    for pod in l.items:
+
+def get_onion_mapping(client, namespace):
+    """Generate an onion service mapping from Kubernetes metadata."""
+    pods = client.list_namespaced_pod(namespace, label_selector=SERVICE_LABEL)
+    mapping = {}
+
+    for pod in pods.items:
         if not pod.metadata.annotations:
             continue
 
@@ -21,82 +26,101 @@ def get_onion_mapping(client, NAMESPACE):
         service = pod.metadata.labels[SERVICE_LABEL]
         instance = pod.metadata.annotations[INSTANCE_ANNOT]
 
-        if service not in m:
-            m[service] = set()
+        if service not in mapping:
+            mapping[service] = set()
 
-        m[service].add(instance)
+        mapping[service].add(instance)
 
-    return m
+    return mapping
 
 
 def onionbalance_config(mapping):
-    import json, os.path
-    return json.dumps({
-        'STATUS_SOCKET_LOCATION': ONIONBALANCE_CONTROL,
-        'REFRESH_INTERVAL': REFRESH_INTERVAL,
-        'services': [
-            { 'key': os.path.join(SECRETS_PATH, address),
-              'instances': list(map(lambda s: {'address': s}, instances))
-            }
-            for address, instances in mapping.items()
-        ]
-    })
+    """Generate an onionbalance configuration from a service mapping."""
+    import json
+    import os.path
+
+    return json.dumps(
+        {
+            "STATUS_SOCKET_LOCATION": ONIONBALANCE_CONTROL,
+            "REFRESH_INTERVAL": REFRESH_INTERVAL,
+            "services": [
+                {
+                    "key": os.path.join(SECRETS_PATH, address),
+                    "instances": [{"address": s} for s in instances],
+                }
+                for address, instances in mapping.items()
+            ],
+        }
+    )
 
 
 def start_onionbalance(mapping):
+    """Start an onionbalance process."""
     from subprocess import Popen
 
-    with open(ONIONBALANCE_CONFIG, 'w') as fd:
-        fd.write(onionbalance_config(mapping))
-    return Popen(['onionbalance', '-c', ONIONBALANCE_CONFIG])
+    with open(ONIONBALANCE_CONFIG, "w") as config_file:
+        config_file.write(onionbalance_config(mapping))
+
+    return Popen(["onionbalance", "-c", ONIONBALANCE_CONFIG])
 
 
 def kill(process):
+    """Gracefully terminate a process."""
     from subprocess import TimeoutExpired
-    print('Sending SIGTERM to onionbalance')
+
+    print("Sending SIGTERM to onionbalance")
     process.terminate()
 
     try:
         process.wait(timeout=5)
     except TimeoutExpired:
-        print('Onionbalance failed to terminate within 5s')
+        print("Onionbalance failed to terminate within 5s")
         process.kill()
         process.wait(timeout=60)
 
 
-if __name__ == '__main__':
-    import itertools, os, sys
+def log_changes(oldmap, newmap, output=sys.stderr):
+    """Log the changes between two onion services maps."""
+    import itertools
+
+    output.write("Updating onionbalance config:\n")
+    for host in set(itertools.chain(newmap.keys(), oldmap.keys())):
+        if host in newmap and host in oldmap and newmap[host] == oldmap[host]:
+            continue
+
+        output.write("  %s\n" % host)
+        output.write("    Adding: %s\n" % (newmap[host] - oldmap[host]))
+        output.write("    Removing: %s\n" % (oldmap[host] - newmap[host]))
+        output.write("    Keeping: %s\n" % (oldmap[host] & newmap[host]))
+        output.flush()
+
+
+def _main():
+    import os
     from kubernetes import client, config, watch
-    NAMESPACE = os.environ['POD_NAMESPACE']
+
+    namespace = os.environ["POD_NAMESPACE"]
 
     config.incluster_config.load_incluster_config()
-    v1 = client.CoreV1Api()
+    v1_client = client.CoreV1Api()
 
-    onionmap     = get_onion_mapping(v1, NAMESPACE)
+    onionmap = get_onion_mapping(v1_client, namespace)
     onionbalance = start_onionbalance(onionmap)
 
-    stream = watch.Watch().stream(v1.list_namespaced_pod,
-                                  NAMESPACE,
-                                  label_selector=SERVICE_LABEL
+    stream = watch.Watch().stream(
+        v1_client.list_namespaced_pod, namespace, label_selector=SERVICE_LABEL
     )
 
-    for event in stream:
-        newmap = get_onion_mapping(v1, NAMESPACE)
+    for _ in stream:
+        newmap = get_onion_mapping(v1_client, namespace)
         if newmap == onionmap:
             continue
 
-        sys.stderr.write('Updating onionbalance config:\n')
-        for host in set(itertools.chain(newmap.keys(), onionmap.keys())):
-            if host in newmap and host in onionmap and newmap[host] == onionmap[host]:
-                continue
-
-            sys.stderr.write('  %s\n' % host)
-
-            sys.stderr.write('    Adding: %s\n' % (newmap[host] - onionmap[host]))
-            sys.stderr.write('    Removing: %s\n' % (onionmap[host] - newmap[host]))
-            sys.stderr.write('    Keeping: %s\n' % (onionmap[host] & newmap[host]))
-            sys.stderr.flush()
-
+        log_changes(onionmap, newmap)
         onionmap = newmap
         kill(onionbalance)
         onionbalance = start_onionbalance(onionmap)
+
+
+if __name__ == "__main__":
+    _main()
